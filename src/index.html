@@ -14,6 +14,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script>
     <script>
+      const seed = 2;
       class SeedRandom {
         constructor(seed) {
           this.myrng = new Math.seedrandom(seed);
@@ -21,6 +22,10 @@
 
         next() {
           return this.myrng();
+        }
+
+        between(min, max) {
+          return Math.floor(this.next() * (max - min + 1) + min);
         }
 
         shuffle(arr) {
@@ -31,6 +36,153 @@
           return arr;
         }
       }
+      const $random = new SeedRandom(seed);
+    </script>
+    <script>
+      class Gradient {
+        constructor(colors) {
+          this.colors = colors;
+          this.shapeAttr = {};
+        }
+
+        shape(w, h, state = true, lmy = null, lmx = null) {
+          this.shapeAttr.width = w;
+          this.shapeAttr.height = h;
+          this.shapeAttr.state = state;
+          this.shapeAttr.lmy = lmy || h / 2;
+          this.shapeAttr.lmx = lmx || w / 2;
+
+          return this;
+        }
+
+        gradient(colorName, angle) {
+          const { colorstops, angle: defaultAngle } = this.colors[colorName];
+          const points = this.calcPints(angle || defaultAngle);
+          const grd = drawingContext.createLinearGradient(points.bx, points.by, points.tx, points.ty);
+          for (const i in colorstops || []) {
+            grd.addColorStop(colorstops[i].pos / 100, colorstops[i].color);
+          }
+          window.oldFillStyle = drawingContext.fillStyle;
+          drawingContext.fillStyle = grd;
+
+          return this;
+        }
+
+        noGradient() {
+          if (typeof oldFillStyle !== "undefined") {
+            drawingContext.fillStyle = oldFillStyle;
+          }
+        }
+
+        calcPints(deg) {
+          let { width, height, state, lmy, lmx } = this.shapeAttr;
+          let angInRad = -1 * ((deg * Math.PI) / 180),
+            mh = lmy,
+            mw = lmx,
+            kx,
+            ky,
+            jx,
+            jy,
+            p1x = 0,
+            p1y = 0,
+            p2x = 0,
+            p2y = 0,
+            showKX = false,
+            showJX = false,
+            showKY = false,
+            showJY = false;
+
+          const cA4 = 270 + (Math.atan(mh / mw) * 180) / Math.PI,
+            cA5 = cA4 - 180;
+
+          kx = mw - Math.tan(angInRad) * mh; //red
+          ky = mh + (width - mw) / Math.tan(angInRad);
+          jx = mw + Math.tan(angInRad) * (height - mh); //green
+          jy = mh - mw / Math.tan(angInRad);
+
+          if (0 <= kx && kx <= width) {
+            showKX = true;
+          }
+          if (0 <= ky && ky <= height) {
+            showKY = true;
+          }
+          if (0 <= jx && jx <= width) {
+            showJX = true;
+          }
+          if (0 <= jy && jy <= height) {
+            showJY = true;
+          }
+
+          if (showKX === true && showJX === true) {
+            p1x = kx;
+            p1y = 0;
+            p2x = jx;
+            p2y = height;
+          }
+
+          if (showKY === true && showJY === true) {
+            p1x = width;
+            p1y = ky;
+            p2x = 0;
+            p2y = jy;
+          }
+
+          if (showKX === true && showKY === true) {
+            p1x = kx;
+            p1y = 0;
+            p2x = width;
+            p2y = ky;
+          }
+
+          if (showKY === true && showJX === true) {
+            p1x = width;
+            p1y = ky;
+            p2x = jx;
+            p2y = height;
+          }
+
+          if (showJX === true && showJY === true) {
+            p1x = jx;
+            p1y = height;
+            p2x = 0;
+            p2y = jy;
+          }
+
+          if (showKX === true && showJY === true) {
+            p1x = kx;
+            p1y = 0;
+            p2x = 0;
+            p2y = jy;
+          }
+
+          const calc = Math.round(cA4),
+            calc2 = Math.round(cA5);
+          if (deg === calc || deg === calc2) {
+            //switch is pressed
+            state = state !== true;
+          }
+
+          if (state === true) {
+            return { tx: p1x, ty: p1y, bx: p2x, by: p2y };
+          } else {
+            return { tx: p2x, ty: p2y, bx: p1x, by: p1y };
+          }
+        }
+      }
+
+      // 1)  background-image: linear-gradient(43deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%);
+      // 2)  background-image: linear-gradient(62deg, #8EC5FC 0%, #E0C3FC 100%);
+
+      const $grd = new Gradient({
+        1: {
+          angle: 43,
+          colorstops: [
+            { color: "#4158D0", pos: 0 },
+            { color: "#C850C0", pos: 46 },
+            { color: "#FFCC70", pos: 100 },
+          ],
+        },
+      });
     </script>
     <script src="script.js"></script>
   </body>
